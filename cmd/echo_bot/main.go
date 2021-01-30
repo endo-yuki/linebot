@@ -30,11 +30,11 @@ func init() {
 }
 
 func main() {
-	http.HandleFunc("/callback", lineHandler)
+	http.HandleFunc("/callback", uploadDropbox)
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func lineHandler(w http.ResponseWriter, r *http.Request) {
+func uploadDropbox(w http.ResponseWriter, r *http.Request) {
 	bot, err := linebot.New(
 		conf.channelSecrt,
 		conf.channelToken,
@@ -42,6 +42,7 @@ func lineHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	events, err := bot.ParseRequest(r)
 	if err != nil {
 		if err == linebot.ErrInvalidSignature {
@@ -51,6 +52,7 @@ func lineHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
 	for _, event := range events {
 		if event.Type == linebot.EventTypeMessage {
 			switch message := event.Message.(type) {
@@ -64,6 +66,7 @@ func lineHandler(w http.ResponseWriter, r *http.Request) {
 				if err != nil {
 					log.Println(err)
 				}
+				defer file.Close()
 
 				if _, err = io.Copy(file, content.Content); err != nil {
 					log.Println(err)
@@ -81,10 +84,17 @@ func lineHandler(w http.ResponseWriter, r *http.Request) {
 					log.Print(err)
 					return
 				}
-
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("アップロードが完了しました")).Do(); err != nil {
 					log.Print(err)
 				}
+
+				if err = file.Close(); err != nil {
+					log.Print(err)
+				}
+				if err = os.Remove(filename); err != nil {
+					log.Print(err)
+				}
+
 			default:
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("画像を送信してください")).Do(); err != nil {
 					log.Print(err)
