@@ -60,16 +60,19 @@ func uploadDropbox(w http.ResponseWriter, r *http.Request) {
 				content, err := bot.GetMessageContent(message.ID).Do()
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				filename := message.ID + ".png"
 				file, err := os.Create(filename)
 				if err != nil {
 					log.Println(err)
+					return
 				}
 				defer file.Close()
 
 				if _, err = io.Copy(file, content.Content); err != nil {
 					log.Println(err)
+					return
 				}
 
 				config := dropbox.Config{
@@ -81,23 +84,26 @@ func uploadDropbox(w http.ResponseWriter, r *http.Request) {
 				f, _ := os.Open(filename)
 				_, err = cli.Upload(req, f)
 				if err != nil {
-					log.Print(err)
+					log.Println(err)
 					return
 				}
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("アップロードが完了しました")).Do(); err != nil {
-					log.Print(err)
+					log.Println(err)
+					return
 				}
 
 				if err = file.Close(); err != nil {
-					log.Print(err)
+					log.Println(err)
+					return
 				}
 				if err = os.Remove(filename); err != nil {
-					log.Print(err)
+					log.Println(err)
+					return
 				}
 
 			default:
 				if _, err = bot.ReplyMessage(event.ReplyToken, linebot.NewTextMessage("画像を送信してください")).Do(); err != nil {
-					log.Print(err)
+					log.Println(err)
 				}
 			}
 		}
